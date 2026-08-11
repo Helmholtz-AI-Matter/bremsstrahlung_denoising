@@ -1,0 +1,12 @@
+astropy
+bs4
+matplotlib
+monai
+numpy
+pandas
+pytorch_lightning
+scikit_learn
+scikit_image
+tifffile
+torch
+tqdm
