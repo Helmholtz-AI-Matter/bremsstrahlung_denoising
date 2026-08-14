@@ -1,18 +1,19 @@
 from pathlib import Path
 
-import bremsstrahlung_denoising.colorscheme as rofl
-import bremsstrahlung_denoising.mmmUtils as mu
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+
+import bremsstrahlung_denoising.colorscheme as rofl
+import bremsstrahlung_denoising.mmmUtils as mu
 from bremsstrahlung_denoising.dataset import quantile_normalization
 from bremsstrahlung_denoising.model import Denoiser, NoiseRemover
 
 
-def load_model(model_path, model_type="denoiser", device="cpu"):
+def load_model(model_path, model_type="denoiser", device="cpu", model_idx=0):
     train_dir = Path(model_path)
     ckpt_files = sorted(train_dir.rglob("**/*.ckpt"))
-    ckpt_file = ckpt_files[0]
+    ckpt_file = ckpt_files[model_idx]
     print("Loading file: ", ckpt_file)
     if model_type == "denoiser":
         model = Denoiser.load_from_checkpoint(ckpt_file)
@@ -28,7 +29,7 @@ def load_model(model_path, model_type="denoiser", device="cpu"):
     model.freeze()
     # accelerator = "gpu" if torch.cuda.is_available() else "cpu"
 
-    return model
+    return model.to(device)
 
 
 def patchwise_prediction2(
@@ -37,13 +38,14 @@ def patchwise_prediction2(
     patch_size=128,
     stride=128,
     normalization="tile",
+    qlow=0.01,
     qhigh=0.9995,
     offset=[0, 0],
 ):
     assert normalization in ["tile", "image", "none"]
     assert noisy_input.ndim == 3
     assert noisy_input.shape[0] == 1
-
+    # dims = (noisy_input.shape[1], noisy_input.shape[2])
     # input: 1 x H x W
     n_rows = noisy_input.shape[1] // patch_size
     n_cols = noisy_input.shape[2] // patch_size
@@ -79,7 +81,7 @@ def patchwise_prediction2(
                 # This assumes that no prior normalization was applied!
                 if normalization == "tile":
                     patch_norm, qlow_tile, qhigh_tile = quantile_normalization(
-                        patch, quantile_high=qhigh
+                        patch, quantile_high=qhigh, quantile_low=qlow
                     )
                     patch = torch.tensor(patch_norm)
                     # print("Normalizing on tile level before making prediction")
@@ -122,7 +124,7 @@ def get_boundary_weights(patch_size=128, stride=128, offset=[0, 0], dims=(1024, 
     return edges
 
 
-def doit(noisy_signal, model):
+def doit(noisy_signal, model, qlow=0.01, qhigh=0.9995):
     dims = np.shape(noisy_signal)
     noisy_signal_test_raw_torch = torch.tensor(noisy_signal[np.newaxis, np.newaxis])
     print("Noisy signal range", noisy_signal.min(), noisy_signal.max())
@@ -133,10 +135,16 @@ def doit(noisy_signal, model):
     for oi, off in enumerate(offsets):
         print("Doing tiling offset #{:}: {:}".format(oi, off))
         pred = patchwise_prediction2(
-            noisy_signal_test_raw_torch[0], model, normalization="tile", offset=off
+            noisy_signal_test_raw_torch[0],
+            model,
+            normalization="tile",
+            offset=off,
+            qlow=qlow,
+            qhigh=qhigh,
         )
         preds[oi] = pred
 
+    # devs = np.std(preds, 0)
     mean = np.mean(preds, 0)
     bigmean = preds * 0.0
     for oi, off in enumerate(offsets):
@@ -177,7 +185,7 @@ def draw_it(
     sm = np.max(noisy_signal)
     if cl is None:
         cl = np.array([1e-5 * sm, sm])
-
+    # sourcen = mu.normalize(noisy_signal)
     mu.figure(18, 10)
     plt.subplot(131)
     plt.imshow(noisy_signal, cmap=rofl.cmap())
@@ -203,4 +211,4 @@ def draw_it(
     plt.axis("off")
     plt.axis(ax)
 
-    mu.savefig(out_fig_dir + "/{:}_denoised-fig{:}".format(fn, case))
+    mu.savefig(out_fig_dir + "/{:}_denoised-fig_{:}".format(fn, case))

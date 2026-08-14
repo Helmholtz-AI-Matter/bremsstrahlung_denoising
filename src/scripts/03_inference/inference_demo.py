@@ -12,7 +12,6 @@ import bremsstrahlung_denoising.inference_patchwise as ip
 import bremsstrahlung_denoising.mmmUtils as mu
 import requests
 import tifffile
-from bremsstrahlung_denoising.dataset import quantile_normalization
 from bs4 import BeautifulSoup
 
 # settings
@@ -110,23 +109,11 @@ ckpt_file = checkpoint_files[1]  # lowest validation loss
 
 model = ip.load_model(ckpt_file, model_type=MODEL_TYPE)
 
-
-# This is the main cell actually doing all the work
-
-
 # Reading the file to process
 datafilename = "p3129_r0547_JF4_PPU_thl6.tif"
-# TODO: what is different here then when loading the
-# data during training using the SAXSDataInMemory
+fn = datafilename[6:11]
 
-# TODO: try quantile normalization (0.01, 0.9995)
 noisy_signal = tifffile.imread(datafilename)
-noisy_signal_norm, qlow, qhigh = quantile_normalization(
-    noisy_signal,
-    quantile_low=0.01,
-    quantile_high=0.9995,
-    clip=True
-)
 
 fntiff = f"{datafilename[:-4]}_denoised.tif"
 
@@ -138,12 +125,13 @@ if Path(fntiff).is_file() and SKIP_EXISTING:
 else:
     print(f"Doing prediction for {datafilename} *****************")
 
-    prediction_norm = ip.doit(
-        noisy_signal_norm, model
+    prediction = ip.doit(
+        noisy_signal, model,
+        # those are the quantile normalization params used to train
+        # the model, do not change!
+        qlow=0.01,
+        qhigh=0.995,
     )  # the main work is done here, the prediction is returned
-
-    # undo normalization
-    prediction = qlow + (qhigh - qlow) * prediction_norm
 
     mu.saveTiff(prediction, fntiff)  # Storing the results in the tiff file
 
@@ -153,9 +141,9 @@ if DRAW_OUTPUT:  # drawing
     ip.draw_it(
         noisy_signal,
         prediction,
-        runNo=datafilename[:-4],
+        runNo=fn[1:],
         case="",
-        fn=datafilename[:-4],
+        fn=fn,
         draw_output=DRAW_OUTPUT,
         ax=ax,
         noise_cmax=noise_cmax,
