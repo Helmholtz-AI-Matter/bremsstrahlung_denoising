@@ -1,0 +1,20 @@
+{
+    "creators": [
+        {
+            "name": "Starke, Sebastian",
+            "affiliation": "Helmholtz-Zentrum Dresden-Rossendorf",
+            "orcid": "0000-0001-5007-1868"
+        },
+        {
+            "name": "Šmíd, Michal",
+            "affiliation": "Helmholtz-Zentrum Dresden-Rossendorf",
+            "orcid": "0000-0002-7162-7500"
+        }
+    ],
+    "title": "Removal of bremsstrahlung background from SAXS signals with deep neural networks: sourcecode",
+    "access_right": "open",
+    "upload_type": "software",
+    "license": "MIT",
+    "pub_id": "43791",
+    "description": "This repository contains the sourcecode used to train neural networks for the removal of bremsstrahlung background from SAXS data. Also, it offers a script to apply trained models to new noisy data."
+}
