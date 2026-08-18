@@ -26,7 +26,7 @@ Large amounts of energetic bremsstrahlung are created in experiments where ultra
 ### 3) Apply the model to experimental data
 
 1) Check out the **src/scripts/03_inference/inference_demo.py** to see how predictions can be made using an existing trained network.
-We have made our trained model available at https://doi.org/10.14278/rodare.4786.
+We have made our trained model available at https://doi.org/10.14278/rodare.4956.
 
 ## Code information
 
