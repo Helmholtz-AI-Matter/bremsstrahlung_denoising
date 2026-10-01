@@ -29,7 +29,7 @@ tiles_attempts_per_image = 60
 
 signal_threshold = 500  # keV/px - level since when we consider the value to be a signal
 signal_threshold_hot_pixels = 1000  # keV/px single pixel at which we consider it to be a hot pixel and set it to 0
-signal_amplitude_randomization = 1000  # maximal factor by which we randomize the amplitude of the signal images, to avoid bias in the training data. 0 means no randomization.
+signal_amplitude_randomization = 0  # maximal factor by which we randomize the amplitude of the signal images, to avoid bias in the training data. 0 means no randomization.
 
 if do_noise:  # Directories
     dira = "../export/noise/"
